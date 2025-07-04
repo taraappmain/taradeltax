@@ -7,6 +7,9 @@ Original file is located at
     https://colab.research.google.com/drive/1MpDbQhYOO3_gqQmkZ5GSsxgh3QkUXQ44
 """
 
+# -*- coding: utf-8 -*-
+"""Tara Delta Unified Dashboard - Global Deployment Version"""
+
 import sys
 import os
 import streamlit as st
@@ -46,8 +49,8 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 
-# --- Backend API URL ---
-BACKEND_URL = "http://127.0.0.1:8000"
+# --- Backend API URL --- (CHANGE THIS TO YOUR RENDER URL ONCE DEPLOYED)
+BACKEND_URL = "https://tara-api.onrender.com"
 
 # --- Backend Data Fetch ---
 def fetch_agents():
