@@ -7,7 +7,8 @@ Original file is located at
     https://colab.research.google.com/drive/1MpDbQhYOO3_gqQmkZ5GSsxgh3QkUXQ44
 """
 
-# tara_unified_backend.py (updated)
+# -*- coding: utf-8 -*-
+"""Tara Unified Backend - Global API"""
 
 from fastapi import FastAPI, HTTPException, Body, Path
 from fastapi.middleware.cors import CORSMiddleware
@@ -16,7 +17,7 @@ from typing import Dict, List
 
 app = FastAPI()
 
-# CORS for frontend
+# --- CORS ---
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -39,7 +40,7 @@ class AffiliateEntry(BaseModel):
     earnings: float
     referral_link: HttpUrl
 
-# --- Agents Database (In-memory) ---
+# --- Agent Data ---
 agents_data = {
     "A001": {
         "agent_id": "A001",
@@ -80,10 +81,20 @@ agents_data = {
         "withdrawable_balance": 900.0,
         "weekly_earnings": 300.0,
         "monthly_profit": 1200.0
+    },
+    "A007": {
+        "agent_id": "A007",
+        "name": "Dropshipping Agent",
+        "category": "Ecommerce",
+        "status": "Live",
+        "affiliate_link": "https://example.com/dropshipping",
+        "withdrawable_balance": 540.0,
+        "weekly_earnings": 180.0,
+        "monthly_profit": 720.0
     }
 }
 
-# --- In-memory affiliate DB keyed by agent_id ---
+# --- Affiliate DB ---
 _affiliate_db: Dict[str, List[Dict]] = {
     "A001": [
         {
@@ -104,7 +115,6 @@ async def get_agents_status():
 
 @app.get("/api/agents/summary")
 async def get_agents_summary():
-    # Aggregate totals across all agents
     total_withdrawable = sum(a['withdrawable_balance'] for a in agents_data.values())
     total_weekly = sum(a['weekly_earnings'] for a in agents_data.values())
     total_monthly = sum(a['monthly_profit'] for a in agents_data.values())
@@ -147,8 +157,6 @@ async def process_withdrawal(withdrawal: WithdrawalRequest):
     else:
         raise HTTPException(status_code=400, detail="Insufficient funds")
 
-# --- Affiliate Endpoints ---
-
 @app.get("/api/agents/{agent_id}/affiliates")
 async def get_affiliates(agent_id: str = Path(..., description="Agent ID")):
     affiliates = _affiliate_db.get(agent_id)
@@ -169,7 +177,7 @@ async def inject_affiliates(agent_id: str, affiliates: List[AffiliateEntry] = Bo
             new_added += 1
     return {"message": f"Injected {new_added} new affiliates into agent {agent_id}"}
 
-# --- Run Server ---
+# --- Local Run ---
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("tara_unified_backend:app", host="127.0.0.1", port=8000, reload=True)
