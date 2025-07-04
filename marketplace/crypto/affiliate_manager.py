@@ -7,31 +7,70 @@ Original file is located at
     https://colab.research.google.com/drive/1MpDbQhYOO3_gqQmkZ5GSsxgh3QkUXQ44
 """
 
-from datetime import datetime
+# -*- coding: utf-8 -*-
+from datetime import datetime, date
+from typing import List, Dict, Optional
 
-# Simulated in-memory affiliate database
-_affiliate_db = {
+# In‑memory affiliate database keyed by agent_id
+_affiliate_db: Dict[str, List[Dict]] = {
     "A001": [
         {
             "affiliate_id": "binance001",
             "name": "Binance",
-            "joined_date": "2025-07-03",
+            "joined_date": date(2025, 7, 3),
             "earnings": 0.0,
             "referral_link": "https://www.binance.com/activity/referral-entry/CPA?ref=CPA_00EDS8MQJG"
         }
     ]
 }
 
-def get_affiliate_details(agent_id):
+def list_all_affiliates() -> Dict[str, List[Dict]]:
+    """Get the full affiliate database."""
+    return _affiliate_db
+
+def list_affiliates(agent_id: str) -> List[Dict]:
+    """Get affiliates for a single agent."""
     return _affiliate_db.get(agent_id, [])
 
-def get_affiliate_count(agent_id):
+def get_affiliate_count(agent_id: str) -> int:
+    """Count affiliates under a given agent."""
     return len(_affiliate_db.get(agent_id, []))
 
-def get_affiliate_earnings(agent_id):
-    return sum(a.get("earnings", 0) for a in _affiliate_db.get(agent_id, []))
+def get_affiliate_earnings(agent_id: str) -> float:
+    """Sum total earnings for a given agent’s affiliates."""
+    return sum(a.get("earnings", 0.0) for a in _affiliate_db.get(agent_id, []))
 
-def add_affiliate(agent_id, affiliate_data):
-    if agent_id not in _affiliate_db:
-        _affiliate_db[agent_id] = []
-    _affiliate_db[agent_id].append(affiliate_data)
+def add_affiliate(agent_id: str, affiliate_data: Dict) -> None:
+    """Add a new affiliate under the given agent."""
+    # normalize joined_date to a date object
+    jd = affiliate_data.get("joined_date")
+    if isinstance(jd, str):
+        affiliate_data["joined_date"] = datetime.fromisoformat(jd).date()
+    _affiliate_db.setdefault(agent_id, []).append(affiliate_data)
+
+def update_affiliate(agent_id: str, affiliate_id: str, **fields) -> bool:
+    """
+    Update an existing affiliate’s fields.
+    Returns True if found+updated, False if not found.
+    """
+    for aff in _affiliate_db.get(agent_id, []):
+        if aff["affiliate_id"] == affiliate_id:
+            for k, v in fields.items():
+                if k == "joined_date" and isinstance(v, str):
+                    aff[k] = datetime.fromisoformat(v).date()
+                else:
+                    aff[k] = v
+            return True
+    return False
+
+def remove_affiliate(agent_id: str, affiliate_id: str) -> bool:
+    """
+    Remove an affiliate from the given agent.
+    Returns True if removed, False if not found.
+    """
+    original = _affiliate_db.get(agent_id, [])
+    filtered = [a for a in original if a["affiliate_id"] != affiliate_id]
+    if len(filtered) != len(original):
+        _affiliate_db[agent_id] = filtered
+        return True
+    return False

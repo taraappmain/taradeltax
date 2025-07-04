@@ -13,6 +13,61 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from .affiliate_manager import get_affiliate_count, get_affiliate_earnings, get_affiliate_details
 
+class CryptoAgent:
+    def __init__(self, agent_id="A001"):
+        self.agent_id = agent_id
+        self.total_earned = 0.0
+        self.withdrawable = 0.0
+
+    def get_crypto_data(self):
+        # TODO: fetch real-time data or simulate
+        pass
+
+    def _save_portfolio(self):
+        # TODO: persist portfolio data
+        pass
+
+    def record_snapshot(self):
+        # TODO: log a snapshot of portfolio
+        pass
+
+    def get_portfolio_df(self):
+        # Example test data—replace with real fetch
+        return pd.DataFrame([
+            {"name": "Bitcoin",  "amount": 0.1, "current_price": 60000, "value": 6000},
+            {"name": "Ethereum", "amount": 1.0, "current_price": 3200,  "value": 3200},
+        ])
+
+    def get_trade_history(self):
+        import datetime as dt
+        return pd.DataFrame([
+            {"timestamp": dt.datetime.now(), "trade": "buy BTC", "amount": 0.1},
+        ])
+
+    def get_history_summary(self):
+        import datetime as dt
+        return pd.DataFrame([
+            {"timestamp": dt.datetime.now() - dt.timedelta(days=i), "value":  (9000 + i*100)}
+            for i in range(5)
+        ])
+
+    def get_yield_rewards(self):
+        # No rewards yet
+        return pd.DataFrame([])
+
+    def buy(self, coin, amount):
+        # TODO: implement buy logic
+        pass
+
+    def sell(self, coin, amount):
+        # TODO: implement sell logic
+        pass
+
+    def record_yield(self, protocol, coin, amount):
+        # TODO: implement yield record
+        pass
+
+
 def crypto_agent_ui(agent):
     st.write("---")
     st.title("🪙 Crypto Agent Dashboard")
@@ -34,7 +89,7 @@ def crypto_agent_ui(agent):
             st.metric("Total Earned", f"${agent.total_earned:,.2f}")
             st.metric("Withdrawable", f"${agent.withdrawable:,.2f}")
 
-            # Affiliate summary metrics
+            # Affiliate summary
             st.metric("Affiliates", f"{get_affiliate_count(agent_id)}")
             st.metric("Affiliate Earnings", f"${get_affiliate_earnings(agent_id):,.2f}")
 
@@ -53,13 +108,17 @@ def crypto_agent_ui(agent):
             if df.empty or df['value'].sum() == 0:
                 st.info("Portfolio is empty or has no value.")
             else:
-                st.dataframe(df[['name', 'amount', 'current_price', 'value']].sort_values(by='value', ascending=False), use_container_width=True)
+                st.dataframe(
+                    df[['name', 'amount', 'current_price', 'value']]
+                      .sort_values(by='value', ascending=False),
+                    use_container_width=True
+                )
                 fig, ax = plt.subplots()
                 ax.pie(df['value'], labels=df['name'], autopct='%1.1f%%', startangle=140)
                 ax.axis('equal')
                 st.pyplot(fig)
 
-        # Buy / Sell
+        # Buy / Sell section
         st.subheader("Buy / Sell Cryptos")
         df = agent.get_portfolio_df()
         portfolio_coins = sorted(set(df['name'].dropna().tolist()))
@@ -81,7 +140,11 @@ def crypto_agent_ui(agent):
 
         with col_sell:
             st.write("### Sell")
-            coin_to_sell = st.selectbox("Select coin to sell", portfolio_coins if portfolio_coins else ["None"], key="sell_coin")
+            coin_to_sell = st.selectbox(
+                "Select coin to sell",
+                portfolio_coins if portfolio_coins else ["None"],
+                key="sell_coin"
+            )
             sell_amount = st.number_input("Amount in USD", min_value=1.0, step=1.0, key="sell_amount")
             if st.button("Sell", key="sell_btn"):
                 try:
@@ -132,39 +195,3 @@ def crypto_agent_ui(agent):
             st.error(f"Error loading yield rewards: {e}")
 
         st.divider()
-        st.subheader("Add New Yield Reward")
-        col1, col2 = st.columns(2)
-        with col1:
-            protocol = st.text_input("Protocol (e.g., Lido, Rocket Pool)")
-            coin = st.text_input("Coin Symbol", value="ETH")
-        with col2:
-            amt = st.number_input("Amount Earned", min_value=0.0001, step=0.01)
-
-        if st.button("Log Reward"):
-            if protocol.strip() and coin.strip() and amt > 0:
-                try:
-                    agent.record_yield(protocol.strip(), coin.strip(), amt)
-                    st.success(f"Logged {amt} {coin.upper()} from {protocol}")
-                    st.experimental_rerun()
-                except Exception as e:
-                    st.error(f"Error logging reward: {e}")
-            else:
-                st.warning("Please fill all fields correctly.")
-
-    # -------------------- Affiliates --------------------
-    with tabs[4]:
-        st.subheader("Affiliate Program")
-        try:
-            affiliate_data = get_affiliate_details(agent_id)
-            if not affiliate_data:
-                st.info("No affiliates linked to this agent.")
-            else:
-                for row in affiliate_data:
-                    st.markdown(f"""
-                    - **{row['name']}**
-                      - Joined: {row['joined_date']}
-                      - Earnings: ${row['earnings']:,.2f}
-                      - [Join via Link]({row['referral_link']})
-                    """)
-        except Exception as e:
-            st.error(f"Error loading affiliate data: {e}")
