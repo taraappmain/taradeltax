@@ -7,10 +7,12 @@ Original file is located at
     https://colab.research.google.com/drive/1MpDbQhYOO3_gqQmkZ5GSsxgh3QkUXQ44
 """
 
-from fastapi import FastAPI, HTTPException, Body
+# tara_unified_backend.py (updated)
+
+from fastapi import FastAPI, HTTPException, Body, Path
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, HttpUrl
-from typing import Dict
+from typing import Dict, List
 
 app = FastAPI()
 
@@ -29,6 +31,13 @@ class AffiliateUpdate(BaseModel):
 class WithdrawalRequest(BaseModel):
     agent_id: str
     amount: float
+
+class AffiliateEntry(BaseModel):
+    affiliate_id: str
+    name: str
+    joined_date: str
+    earnings: float
+    referral_link: HttpUrl
 
 # --- Agents Database (In-memory) ---
 agents_data = {
@@ -74,7 +83,21 @@ agents_data = {
     }
 }
 
+# --- In-memory affiliate DB keyed by agent_id ---
+_affiliate_db: Dict[str, List[Dict]] = {
+    "A001": [
+        {
+            "affiliate_id": "binance001",
+            "name": "Binance",
+            "joined_date": "2025-07-03",
+            "earnings": 0.0,
+            "referral_link": "https://www.binance.com/en/register?ref=CPA_00EDS8MQJG"
+        }
+    ]
+}
+
 # --- API Endpoints ---
+
 @app.get("/api/agents/status")
 async def get_agents_status():
     return {"agents": list(agents_data.values())}
@@ -123,6 +146,28 @@ async def process_withdrawal(withdrawal: WithdrawalRequest):
         return {"success": f"Withdrawal of ${amount} for agent {agent_id} was successful."}
     else:
         raise HTTPException(status_code=400, detail="Insufficient funds")
+
+# --- Affiliate Endpoints ---
+
+@app.get("/api/agents/{agent_id}/affiliates")
+async def get_affiliates(agent_id: str = Path(..., description="Agent ID")):
+    affiliates = _affiliate_db.get(agent_id)
+    if affiliates is None:
+        raise HTTPException(status_code=404, detail="Agent not found or no affiliates")
+    return {"agent_id": agent_id, "affiliates": affiliates}
+
+@app.post("/api/agents/{agent_id}/affiliates/inject")
+async def inject_affiliates(agent_id: str, affiliates: List[AffiliateEntry] = Body(...)):
+    if agent_id not in _affiliate_db:
+        _affiliate_db[agent_id] = []
+    existing_ids = {a['affiliate_id'] for a in _affiliate_db[agent_id]}
+    new_added = 0
+    for aff in affiliates:
+        aff_dict = aff.dict()
+        if aff_dict["affiliate_id"] not in existing_ids:
+            _affiliate_db[agent_id].append(aff_dict)
+            new_added += 1
+    return {"message": f"Injected {new_added} new affiliates into agent {agent_id}"}
 
 # --- Run Server ---
 if __name__ == "__main__":

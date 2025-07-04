@@ -7,191 +7,149 @@ Original file is located at
     https://colab.research.google.com/drive/1MpDbQhYOO3_gqQmkZ5GSsxgh3QkUXQ44
 """
 
-# -*- coding: utf-8 -*-
-import streamlit as st
+import json
+import os
 import pandas as pd
-import matplotlib.pyplot as plt
-from .affiliate_manager import get_affiliate_count, get_affiliate_earnings, get_affiliate_details
+from datetime import datetime
+from pathlib import Path
 
 class CryptoAgent:
-    def __init__(self, agent_id="A001"):
+    def __init__(self, agent_id):
         self.agent_id = agent_id
+        self.db_file = f"crypto_agent_{agent_id.lower()}.db"
+        self.portfolio = {}
+        self.trade_history = []
+        self.yield_rewards = []
+        self.history_summary = []
         self.total_earned = 0.0
         self.withdrawable = 0.0
+        self.load_data()
+
+    def load_data(self):
+        if Path(self.db_file).exists():
+            with open(self.db_file, "r") as f:
+                data = json.load(f)
+                self.portfolio = data.get("portfolio", {})
+                self.trade_history = data.get("trade_history", [])
+                self.yield_rewards = data.get("yield_rewards", [])
+                self.total_earned = data.get("total_earned", 0.0)
+                self.withdrawable = data.get("withdrawable", 0.0)
+                self.history_summary = data.get("history_summary", [])
+        else:
+            self.save()
+
+    def save(self):
+        data = {
+            "portfolio": self.portfolio,
+            "trade_history": self.trade_history,
+            "yield_rewards": self.yield_rewards,
+            "total_earned": self.total_earned,
+            "withdrawable": self.withdrawable,
+            "history_summary": self.history_summary,
+        }
+        with open(self.db_file, "w") as f:
+            json.dump(data, f, indent=2)
 
     def get_crypto_data(self):
-        # TODO: fetch real-time data or simulate
-        pass
+        # Simulated price fetch (replace with live API if needed)
+        prices = {
+            "Bitcoin": 60000,
+            "Ethereum": 3500,
+            "Tether": 1,
+            "BNB": 420,
+            "Cardano": 0.45
+        }
+        for coin, info in self.portfolio.items():
+            info["current_price"] = prices.get(coin, 1)
+            info["value"] = info["amount"] * info["current_price"]
+        self.save()
 
     def _save_portfolio(self):
-        # TODO: persist portfolio data
-        pass
-
-    def record_snapshot(self):
-        # TODO: log a snapshot of portfolio
-        pass
+        self.save()
 
     def get_portfolio_df(self):
-        # Example test data—replace with real fetch
-        return pd.DataFrame([
-            {"name": "Bitcoin",  "amount": 0.1, "current_price": 60000, "value": 6000},
-            {"name": "Ethereum", "amount": 1.0, "current_price": 3200,  "value": 3200},
-        ])
+        rows = []
+        for coin, data in self.portfolio.items():
+            rows.append({
+                "name": coin,
+                "amount": data["amount"],
+                "current_price": data.get("current_price", 0),
+                "value": data["amount"] * data.get("current_price", 0)
+            })
+        return pd.DataFrame(rows)
+
+    def buy(self, coin, amount_usd):
+        self.get_crypto_data()
+        price = self.portfolio.get(coin, {}).get("current_price", 100)
+        qty = amount_usd / price
+        if coin in self.portfolio:
+            self.portfolio[coin]["amount"] += qty
+        else:
+            self.portfolio[coin] = {"amount": qty, "current_price": price}
+        self.total_earned += amount_usd
+        self.withdrawable += amount_usd * 0.05
+        self.trade_history.append({
+            "type": "Buy",
+            "coin": coin,
+            "amount_usd": amount_usd,
+            "price": price,
+            "timestamp": datetime.now().isoformat()
+        })
+        self.save()
+
+    def sell(self, coin, amount_usd):
+        self.get_crypto_data()
+        price = self.portfolio.get(coin, {}).get("current_price", 100)
+        qty = amount_usd / price
+        if coin in self.portfolio and self.portfolio[coin]["amount"] >= qty:
+            self.portfolio[coin]["amount"] -= qty
+            self.withdrawable += amount_usd * 0.95
+            self.trade_history.append({
+                "type": "Sell",
+                "coin": coin,
+                "amount_usd": amount_usd,
+                "price": price,
+                "timestamp": datetime.now().isoformat()
+            })
+            self.save()
+        else:
+            raise ValueError("Insufficient amount to sell")
 
     def get_trade_history(self):
-        import datetime as dt
-        return pd.DataFrame([
-            {"timestamp": dt.datetime.now(), "trade": "buy BTC", "amount": 0.1},
-        ])
+        return pd.DataFrame(self.trade_history)
+
+    def record_snapshot(self):
+        total = sum([v["amount"] * v.get("current_price", 1) for v in self.portfolio.values()])
+        self.history_summary.append({
+            "timestamp": datetime.now().isoformat(),
+            "value": total
+        })
+        self.save()
 
     def get_history_summary(self):
-        import datetime as dt
-        return pd.DataFrame([
-            {"timestamp": dt.datetime.now() - dt.timedelta(days=i), "value":  (9000 + i*100)}
-            for i in range(5)
-        ])
+        return pd.DataFrame(self.history_summary)
 
     def get_yield_rewards(self):
-        # No rewards yet
-        return pd.DataFrame([])
-
-    def buy(self, coin, amount):
-        # TODO: implement buy logic
-        pass
-
-    def sell(self, coin, amount):
-        # TODO: implement sell logic
-        pass
+        return pd.DataFrame(self.yield_rewards)
 
     def record_yield(self, protocol, coin, amount):
-        # TODO: implement yield record
-        pass
+        self.yield_rewards.append({
+            "protocol": protocol,
+            "coin": coin,
+            "amount": amount,
+            "timestamp": datetime.now().isoformat()
+        })
+        self.withdrawable += amount
+        self.total_earned += amount
+        self.save()
 
 
+# Optional: include UI fallback for debugging
 def crypto_agent_ui(agent):
-    st.write("---")
-    st.title("🪙 Crypto Agent Dashboard")
-
-    tabs = st.tabs([
-        "Portfolio",
-        "Trade History",
-        "Portfolio Over Time",
-        "Yield Farming",
-        "Affiliates"
-    ])
-
-    agent_id = getattr(agent, 'agent_id', 'A001')
-
-    # -------------------- Portfolio --------------------
-    with tabs[0]:
-        col1, col2 = st.columns([2, 3])
-        with col1:
-            st.metric("Total Earned", f"${agent.total_earned:,.2f}")
-            st.metric("Withdrawable", f"${agent.withdrawable:,.2f}")
-
-            # Affiliate summary
-            st.metric("Affiliates", f"{get_affiliate_count(agent_id)}")
-            st.metric("Affiliate Earnings", f"${get_affiliate_earnings(agent_id):,.2f}")
-
-            if st.button("Refresh Prices"):
-                try:
-                    agent.get_crypto_data()
-                    agent._save_portfolio()
-                    agent.record_snapshot()
-                    st.success("Prices refreshed successfully!")
-                except Exception as e:
-                    st.error(f"Error refreshing prices: {e}")
-
-        with col2:
-            st.subheader("Current Portfolio")
-            df = agent.get_portfolio_df()
-            if df.empty or df['value'].sum() == 0:
-                st.info("Portfolio is empty or has no value.")
-            else:
-                st.dataframe(
-                    df[['name', 'amount', 'current_price', 'value']]
-                      .sort_values(by='value', ascending=False),
-                    use_container_width=True
-                )
-                fig, ax = plt.subplots()
-                ax.pie(df['value'], labels=df['name'], autopct='%1.1f%%', startangle=140)
-                ax.axis('equal')
-                st.pyplot(fig)
-
-        # Buy / Sell section
-        st.subheader("Buy / Sell Cryptos")
-        df = agent.get_portfolio_df()
-        portfolio_coins = sorted(set(df['name'].dropna().tolist()))
-        popular_coins = ['Bitcoin', 'Ethereum', 'Tether', 'BNB', 'Cardano']
-        coins = sorted(set(portfolio_coins + popular_coins))
-
-        col_buy, col_sell = st.columns(2)
-        with col_buy:
-            st.write("### Buy")
-            coin_to_buy = st.selectbox("Select coin to buy", coins, key="buy_coin")
-            buy_amount = st.number_input("Amount in USD", min_value=1.0, step=1.0, key="buy_amount")
-            if st.button("Buy", key="buy_btn"):
-                try:
-                    agent.buy(coin_to_buy, buy_amount)
-                    st.success(f"Bought ${buy_amount} of {coin_to_buy}")
-                    st.experimental_rerun()
-                except Exception as e:
-                    st.error(f"Error buying coin: {e}")
-
-        with col_sell:
-            st.write("### Sell")
-            coin_to_sell = st.selectbox(
-                "Select coin to sell",
-                portfolio_coins if portfolio_coins else ["None"],
-                key="sell_coin"
-            )
-            sell_amount = st.number_input("Amount in USD", min_value=1.0, step=1.0, key="sell_amount")
-            if st.button("Sell", key="sell_btn"):
-                try:
-                    agent.sell(coin_to_sell, sell_amount)
-                    st.success(f"Sold ${sell_amount} of {coin_to_sell}")
-                    st.experimental_rerun()
-                except Exception as e:
-                    st.error(f"Error selling coin: {e}")
-
-    # -------------------- Trade History --------------------
-    with tabs[1]:
-        st.subheader("Trade History")
-        try:
-            trades = agent.get_trade_history()
-            if trades.empty:
-                st.info("No trade history yet.")
-            else:
-                st.dataframe(trades, use_container_width=True)
-        except Exception as e:
-            st.error(f"Error loading trade history: {e}")
-
-    # -------------------- Portfolio Over Time --------------------
-    with tabs[2]:
-        st.subheader("Portfolio Value Over Time")
-        try:
-            summary_df = agent.get_history_summary()
-            if summary_df.empty:
-                st.info("No historical portfolio data available.")
-            else:
-                summary_df = summary_df.rename(columns={"timestamp": "Date", "value": "Portfolio Value"})
-                summary_df['Date'] = pd.to_datetime(summary_df['Date'])
-                summary_df = summary_df.sort_values('Date')
-                st.line_chart(summary_df.set_index('Date')['Portfolio Value'])
-        except Exception as e:
-            st.error(f"Error loading portfolio history: {e}")
-
-    # -------------------- Yield Farming --------------------
-    with tabs[3]:
-        st.subheader("Yield Farming Rewards")
-        st.caption("Log and track your DeFi/staking rewards")
-        try:
-            reward_df = agent.get_yield_rewards()
-            if reward_df.empty:
-                st.info("No yield rewards logged yet.")
-            else:
-                st.dataframe(reward_df, use_container_width=True)
-        except Exception as e:
-            st.error(f"Error loading yield rewards: {e}")
-
-        st.divider()
+    import streamlit as st
+    st.subheader("Crypto Agent Loaded")
+    df = agent.get_portfolio_df()
+    if df.empty:
+        st.info("No crypto holdings yet.")
+    else:
+        st.dataframe(df)
