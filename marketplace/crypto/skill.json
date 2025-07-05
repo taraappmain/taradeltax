@@ -1,0 +1,9 @@
+{
+  "name": "TaraCryptoAgent",
+  "version": "1.0.0",
+  "description": "Crypto Intelligence Module",
+  "entry_point": "marketplace.crypto.crypto_agent_module:CryptoAgent",
+  "ui": "marketplace.dashboard.tara_unified_dashboard:render_crypto_tab",
+  "capabilities": ["crypto_status", "wallet_balance"],
+  "dependencies": ["requests"]
+}

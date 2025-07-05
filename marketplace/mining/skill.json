@@ -1,0 +1,9 @@
+{
+  "name": "TaraMiningSkill",
+  "version": "1.0.0",
+  "description": "Mining Core Control Module",
+  "entry_point": "marketplace.mining.api_wrapper:app",
+  "ui": "marketplace.dashboard.tara_unified_dashboard:render_mining_tab",
+  "capabilities": ["start_mining", "monitoring"],
+  "dependencies": ["fastapi", "requests"]
+}

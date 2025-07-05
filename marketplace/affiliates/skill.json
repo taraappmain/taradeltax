@@ -1,0 +1,9 @@
+{
+  "name": "TaraAffiliateManager",
+  "version": "1.0.0",
+  "description": "Global Affiliate Management Module",
+  "entry_point": "marketplace.affiliates.affiliate_manager_module:inject_global_affiliates",
+  "ui": "marketplace.dashboard.tara_unified_dashboard:render_affiliates_tab",
+  "capabilities": ["affiliates_tracking", "injection"],
+  "dependencies": ["requests"]
+}

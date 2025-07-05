@@ -12,6 +12,7 @@ Original file is located at
 
 from fastapi import FastAPI, HTTPException, Body, Path
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, HttpUrl
 from typing import Dict, List
 
@@ -107,6 +108,14 @@ _affiliate_db: Dict[str, List[Dict]] = {
     ]
 }
 
+# --- Dropshipping Products Data ---
+dropshipping_products = [
+    {"name": "Smartwatch 4G", "cost": 25, "price": 59.99, "stock": 42},
+    {"name": "Bluetooth Shower Speaker", "cost": 9, "price": 24.99, "stock": 80},
+    {"name": "LED Pet Collar", "cost": 3.5, "price": 12.99, "stock": 120},
+    {"name": "Portable Blender", "cost": 11.5, "price": 32.00, "stock": 50},
+]
+
 # --- API Endpoints ---
 
 @app.get("/api/agents/status")
@@ -176,6 +185,19 @@ async def inject_affiliates(agent_id: str, affiliates: List[AffiliateEntry] = Bo
             _affiliate_db[agent_id].append(aff_dict)
             new_added += 1
     return {"message": f"Injected {new_added} new affiliates into agent {agent_id}"}
+
+@app.get("/api/agents/A007/products")
+async def get_dropshipping_products():
+    product_list = []
+    for p in dropshipping_products:
+        margin = round(p["price"] - p["cost"], 2)
+        profit_pct = round(100 * (margin / p["cost"]), 1) if p["cost"] else 0
+        product_list.append({
+            **p,
+            "margin": margin,
+            "profit_pct": profit_pct
+        })
+    return JSONResponse(content={"products": product_list})
 
 # --- Local Run ---
 if __name__ == "__main__":

@@ -8,7 +8,7 @@ Original file is located at
 """
 
 # -*- coding: utf-8 -*-
-"""Tara Delta Unified Dashboard - Global Deployment Version"""
+"""Tara Unified Dashboard with Backend Sync, Global Affiliates & Dropshipping"""
 
 import sys
 import os
@@ -37,6 +37,11 @@ except ImportError:
         crypto_agent_ui = None
 
 try:
+    from tara_skills import crypto_plugin
+except ImportError:
+    crypto_plugin = None
+
+try:
     from tara_voice.voice_toggle import toggle_voice_mode
 except ImportError:
     def toggle_voice_mode():
@@ -49,10 +54,10 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 
-# --- Backend API URL --- (CHANGE THIS TO YOUR RENDER URL ONCE DEPLOYED)
-BACKEND_URL = "https://tara-api.onrender.com"
+# --- Backend API URL ---
+BACKEND_URL = "http://127.0.0.1:8000"
 
-# --- Backend Data Fetch ---
+# --- Backend Fetch Functions ---
 def fetch_agents():
     try:
         resp = requests.get(f"{BACKEND_URL}/api/agents/status")
@@ -71,40 +76,46 @@ def fetch_affiliates_for_agent(agent_id):
         st.warning(f"Failed to fetch affiliates for agent {agent_id}: {e}")
         return []
 
+def fetch_dropshipping_products():
+    try:
+        resp = requests.get(f"{BACKEND_URL}/api/agents/A007/products")
+        resp.raise_for_status()
+        return resp.json().get("products", [])
+    except Exception as e:
+        st.error(f"Failed to fetch dropshipping products: {e}")
+        return []
+
 # --- Streamlit Setup ---
-st.set_page_config(page_title="Tara Delta Dashboard", layout="wide")
+st.set_page_config(page_title="Tara Delta Monetization Dashboard", layout="wide")
 st.title("🧠 Tara Delta Monetization Control Center")
 
-# --- Agent Data Load ---
+# --- Initialize Session State ---
 if 'tara_agents_df' not in st.session_state:
     agents = fetch_agents()
     if agents:
         df = pd.DataFrame(agents)
         df.rename(columns={
-            "agent_id": "Agent ID",
-            "name": "Agent Name",
-            "category": "Category",
-            "weekly_earnings": "Weekly Earnings",
-            "monthly_profit": "Monthly Profit",
-            "status": "Status",
+            'agent_id': 'Agent ID',
+            'name': 'Agent Name',
+            'category': 'Category',
+            'weekly_earnings': 'Weekly Earnings',
+            'monthly_profit': 'Monthly Profit',
+            'withdrawable_balance': 'Withdrawable Balance',
+            'status': 'Status',
+            'affiliate_link': 'Affiliate Link',
         }, inplace=True)
-        df["Monetizing"] = True
+        if 'Monetizing' not in df.columns:
+            df['Monetizing'] = False
         st.session_state.tara_agents_df = df
     else:
-        st.session_state.tara_agents_df = pd.DataFrame()
+        st.session_state.tara_agents_df = pd.DataFrame([])
 
-# --- Auto-Activate on Load ---
 if not st.session_state.get("agents_activated", False):
-    if not st.session_state.tara_agents_df.empty:
-        st.session_state.tara_agents_df["Status"] = "Live"
-        st.session_state.tara_agents_df["Monetizing"] = True
-        st.session_state["agents_activated"] = True
+    st.session_state.tara_agents_df["Status"] = "Live"
+    st.session_state.tara_agents_df["Monetizing"] = True
+    st.session_state["agents_activated"] = True
 
-# --- Helper ---
-def status_dot(status):
-    return "🟢 Live" if str(status).lower() == "live" else "⚫ Inactive"
-
-# --- Agent Command Execution ---
+# --- Command Processor ---
 def execute_dang_task(task_name):
     task = task_name.strip().lower()
     df = st.session_state.tara_agents_df
@@ -125,8 +136,14 @@ def execute_dang_task(task_name):
     return False
 
 # --- Tabs ---
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
-    "📊 Overview", "🧠 Agents", "💸 Crypto", "📈 Stocks", "🏦 Withdrawals"
+tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+    "📊 Overview",
+    "🧠 Agents",
+    "💸 Crypto",
+    "📈 Stocks",
+    "🌐 Global Affiliates",
+    "🏦 Withdrawals",
+    "📦 Dropshipping"
 ])
 
 # --- Overview Tab ---
@@ -137,7 +154,7 @@ with tab1:
         "Core Intelligence": "🟢",
         "Voice Engine": "🟡" if toggle_voice_mode else "⚫",
         "Cyber Core": "🟢",
-        "Vision System": "🟢"
+        "Vision System": "🟢",
     }
     st.table(pd.DataFrame(modules.items(), columns=["Module", "Status"]))
     st.subheader("🎙️ Voice")
@@ -148,36 +165,20 @@ with tab1:
 with tab2:
     st.header("🧠 Agent Control & Earnings")
     df = st.session_state.tara_agents_df.copy()
-    if not df.empty:
+    if "Weekly Earnings" in df.columns:
         df["Daily Earnings"] = (df["Weekly Earnings"] / 7).round(2)
-        df["Monetizing"] = df["Monetizing"].apply(lambda x: "Yes" if x else "No")
-        df["Status"] = df["Status"].apply(status_dot)
-        st.dataframe(df[[
-            "Agent ID", "Agent Name", "Category",
-            "Daily Earnings", "Weekly Earnings", "Monthly Profit",
-            "Monetizing", "Status"
-        ]])
-
-        st.subheader("🛠️ Agent Commands")
-        cmd = st.text_input("Enter task (e.g., Activate Agent A002, Deactivate Agent A003)")
-        if st.button("Execute Command"):
-            if execute_dang_task(cmd):
-                st.success(f"Executed: {cmd}")
-            else:
-                st.error("Unknown agent or invalid command")
-
-        # Affiliates Viewer
-        st.subheader("🔗 Affiliates per Agent")
-        selected_agent = st.selectbox("Select Agent to View Affiliates", df["Agent ID"].tolist())
-        if selected_agent:
-            affiliates = fetch_affiliates_for_agent(selected_agent)
-            if affiliates:
-                aff_df = pd.DataFrame(affiliates)
-                st.dataframe(aff_df)
-            else:
-                st.info("No affiliates found for this agent.")
     else:
-        st.warning("No agents loaded. Check backend connection.")
+        df["Daily Earnings"] = 0.0
+    df["Monetizing"] = df["Monetizing"].apply(lambda x: "Yes" if x else "No")
+    df["Status"] = df["Status"].apply(lambda s: "🟢 Live" if str(s).lower() == "live" else "⚫ Inactive")
+    st.dataframe(df)
+    st.subheader("🛠️ Agent Commands")
+    cmd = st.text_input("Enter task")
+    if st.button("Execute Command"):
+        if execute_dang_task(cmd):
+            st.success(f"Executed: {cmd}")
+        else:
+            st.error("Unknown agent or command")
 
 # --- Crypto Tab ---
 with tab3:
@@ -203,34 +204,41 @@ with tab4:
     else:
         st.warning("Stock plugin not available.")
 
-# --- Withdrawals Tab ---
+# --- Global Affiliates Tab ---
 with tab5:
+    st.header("🌐 Global Affiliates Monitor")
+    agent_ids = st.session_state.tara_agents_df["Agent ID"].tolist()
+    selected_agent = st.selectbox("Select Agent to View Affiliates", agent_ids)
+    if selected_agent:
+        affiliates = fetch_affiliates_for_agent(selected_agent)
+        if affiliates:
+            aff_df = pd.DataFrame(affiliates)
+            st.dataframe(aff_df)
+        else:
+            st.info("No affiliates found for selected agent.")
+
+# --- Withdrawals Tab ---
+with tab6:
     st.header("🏦 Withdrawal Panel")
     st.write("💵 Fiat Available: $1000.00")
     st.write("🪙 Crypto Available: 2.5 BTC")
-    col1, col2 = st.columns(2)
+    pin = st.text_input("Enter 4-digit PIN", type="password")
+    if st.button("Submit Withdrawal"):
+        if len(pin) == 4 and pin.isdigit():
+            st.success("Withdrawal submitted.")
+        else:
+            st.error("Invalid PIN.")
 
-    with col1:
-        withdrawal_type = st.radio("Type", ["Fiat", "Crypto"], horizontal=True)
-        amount = st.number_input("Amount", min_value=0.01, step=0.01)
-        wallet_id = st.text_input("Wallet ID (crypto only)") if withdrawal_type == "Crypto" else None
-        pin = st.text_input("Enter 4-digit PIN", type="password")
-        if st.button("Submit Withdrawal"):
-            if len(pin) == 4 and pin.isdigit():
-                if withdrawal_type == "Crypto" and not wallet_id:
-                    st.error("Wallet ID required for crypto withdrawals.")
-                else:
-                    logging.info(f"Withdrawal requested: {amount} {withdrawal_type}")
-                    st.success("Withdrawal submitted.")
-            else:
-                st.error("Invalid PIN.")
-
-    with col2:
-        st.subheader("📜 Recent Logs")
-        try:
-            with open("tara_dashboard.log") as f:
-                logs = f.readlines()[-10:]
-                for line in logs:
-                    st.write(line.strip())
-        except FileNotFoundError:
-            st.info("No logs yet.")
+# --- Dropshipping Tab ---
+with tab7:
+    st.header("📦 Dropshipping Agent Dashboard")
+    product_data = fetch_dropshipping_products()
+    if product_data:
+        product_df = pd.DataFrame(product_data)
+        st.dataframe(product_df[["name", "cost", "price", "margin", "profit_pct", "stock"]],
+                     use_container_width=True)
+        csv = product_df.to_csv(index=False).encode('utf-8')
+        st.download_button("⬇️ Export Product List", data=csv, file_name="tara_dropship_products.csv")
+        st.success("Dropshipping Agent A007 is Active & Monetizing 💸")
+    else:
+        st.info("No dropshipping products available or failed to load.")

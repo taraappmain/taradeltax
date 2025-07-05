@@ -1,0 +1,9 @@
+{
+  "name": "TaraDropshipAgent",
+  "version": "1.0.0",
+  "description": "Dropshipping Agent Module",
+  "entry_point": "marketplace.dropship.dropship_agent_module:DropshipAgent",
+  "ui": "marketplace.dashboard.tara_unified_dashboard:render_dropship_tab",
+  "capabilities": ["product_catalog", "csv_export"],
+  "dependencies": ["pandas", "requests"]
+}
