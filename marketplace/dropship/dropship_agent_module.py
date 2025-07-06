@@ -7,67 +7,53 @@ Original file is located at
     https://colab.research.google.com/drive/1MpDbQhYOO3_gqQmkZ5GSsxgh3QkUXQ44
 """
 
-# -*- coding: utf-8 -*-
-"""
-Tara Dropshipping Integration - Real Product Loader, Monetization Engine, Auto Sync
-"""
+import requests
+import logging
 
-import json
-from pathlib import Path
-from typing import List, Dict
+BACKEND_URL = "http://127.0.0.1:8000"
+AGENT_ID = "A007"  # Dropshipping Agent ID
 
-# --- Data File ---
-PRODUCTS_FILE = Path("tara_backend/data/dropship_products.json")
+def fetch_dropship_products() -> list:
+    """
+    Fetch dropshipping product data from backend API for agent A007.
+    Returns a list of product dicts or empty list on failure.
+    """
+    url = f"{BACKEND_URL}/api/agents/{AGENT_ID}/products"
+    try:
+        response = requests.get(url, timeout=8)
+        response.raise_for_status()
+        data = response.json()
+        products = data.get("products", [])
+        return products
+    except requests.RequestException as e:
+        logging.error(f"Failed to fetch dropshipping products: {e}")
+        return []
 
-# --- Example Product Dataset ---
-def get_real_dropship_products() -> List[Dict]:
-    return [
-        {"name": "4K Mini Drone", "cost": 22.0, "price": 69.99, "stock": 150},
-        {"name": "Posture Corrector Brace", "cost": 4.5, "price": 19.99, "stock": 300},
-        {"name": "LED Flame Speaker", "cost": 10.0, "price": 39.95, "stock": 120},
-        {"name": "Magnetic Phone Holder", "cost": 2.3, "price": 11.99, "stock": 500},
-        {"name": "Pet Hair Remover Roller", "cost": 1.9, "price": 12.99, "stock": 400},
-        {"name": "Smart LED Strip Lights", "cost": 5.0, "price": 24.99, "stock": 220},
-        {"name": "Wireless Car Vacuum", "cost": 13.0, "price": 49.99, "stock": 90},
-        {"name": "Neck Massager Pillow", "cost": 14.0, "price": 39.99, "stock": 70},
-        {"name": "Dog Car Seat Cover", "cost": 7.0, "price": 34.99, "stock": 85},
-        {"name": "Rechargeable Hand Warmer", "cost": 6.5, "price": 29.95, "stock": 130}
-    ]
-
-# --- Save to JSON File ---
-def save_dropship_products(products: List[Dict]) -> None:
-    PRODUCTS_FILE.parent.mkdir(parents=True, exist_ok=True)
-    with open(PRODUCTS_FILE, 'w', encoding='utf-8') as f:
-        json.dump(products, f, indent=2)
-    print(f"✅ Saved {len(products)} dropshipping products to {PRODUCTS_FILE}")
-
-# --- Load from JSON File ---
-def load_dropship_products() -> List[Dict]:
-    if PRODUCTS_FILE.exists():
-        with open(PRODUCTS_FILE, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    return []
-
-# --- Calculate Margin ---
-def enrich_with_profit(products: List[Dict]) -> List[Dict]:
+def enrich_products(products: list) -> list:
+    """
+    Optional: Add margin and profit percentage calculations to products.
+    Assumes each product has 'cost' and 'price' keys.
+    """
     for p in products:
-        margin = round(p["price"] - p["cost"], 2)
-        profit_pct = round(100 * (margin / p["cost"]), 1) if p["cost"] else 0
-        p.update({"margin": margin, "profit_pct": profit_pct})
+        try:
+            cost = float(p.get("cost", 0))
+            price = float(p.get("price", 0))
+            if cost > 0 and price > 0:
+                margin = round(price - cost, 2)
+                profit_pct = round(100 * (margin / cost), 1)
+            else:
+                margin = 0.0
+                profit_pct = 0.0
+            p["margin"] = margin
+            p["profit_pct"] = profit_pct
+        except (ValueError, TypeError):
+            p["margin"] = 0.0
+            p["profit_pct"] = 0.0
     return products
 
-# --- Optional: Add Checkout URLs (mock) ---
-def add_checkout_urls(products: List[Dict], base_url: str = "https://tara.shop/checkout") -> List[Dict]:
-    for p in products:
-        slug = p['name'].lower().replace(" ", "-")
-        p["buy_now"] = f"{base_url}/{slug}"
-    return products
-
-# --- Bootstrap: Generate and Sync ---
+# Example usage:
 if __name__ == "__main__":
-    raw_products = get_real_dropship_products()
-    products_with_profit = enrich_with_profit(raw_products)
-    full_products = add_checkout_urls(products_with_profit)
-    save_dropship_products(full_products)
-
-    print("🚀 Dropshipping system initialized and monetizing.")
+    products = fetch_dropship_products()
+    enriched_products = enrich_products(products)
+    for p in enriched_products:
+        print(f"{p.get('name')} - Price: ${p.get('price')} - Stock: {p.get('stock')} - Profit%: {p.get('profit_pct')}%")

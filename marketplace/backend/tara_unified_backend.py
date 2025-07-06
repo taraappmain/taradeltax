@@ -8,7 +8,9 @@ Original file is located at
 """
 
 # -*- coding: utf-8 -*-
-"""Tara Unified Backend - Global API"""
+"""
+Tara Unified Backend - Global API (Updated with Root Route + Live Affiliate & Dropshipping)
+"""
 
 from fastapi import FastAPI, HTTPException, Body, Path
 from fastapi.middleware.cors import CORSMiddleware
@@ -25,6 +27,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# --- Root Route (✅ Fixed) ---
+@app.get("/")
+def root():
+    return {"status": "Tara Delta backend is live", "version": "1.0"}
 
 # --- Data Models ---
 class AffiliateUpdate(BaseModel):
@@ -68,7 +75,7 @@ agents_data = {
         "name": "Affiliate + Dropshipping Engine",
         "category": "Marketing",
         "status": "Live",
-        "affiliate_link": "https://example.com/affiliate",
+        "affiliate_link": "https://amzn.to/4lxn9a4",
         "withdrawable_balance": 1200.0,
         "weekly_earnings": 350.0,
         "monthly_profit": 1400.0
@@ -88,7 +95,7 @@ agents_data = {
         "name": "Dropshipping Agent",
         "category": "Ecommerce",
         "status": "Live",
-        "affiliate_link": "https://example.com/dropshipping",
+        "affiliate_link": "https://amzn.to/4lxn9a4",
         "withdrawable_balance": 540.0,
         "weekly_earnings": 180.0,
         "monthly_profit": 720.0
@@ -104,20 +111,27 @@ _affiliate_db: Dict[str, List[Dict]] = {
             "joined_date": "2025-07-03",
             "earnings": 0.0,
             "referral_link": "https://www.binance.com/en/register?ref=CPA_00EDS8MQJG"
+        },
+        {
+            "affiliate_id": "amazon001",
+            "name": "Amazon",
+            "joined_date": "2025-07-06",
+            "earnings": 0.0,
+            "referral_link": "https://amzn.to/4lxn9a4"
         }
     ]
 }
 
 # --- Dropshipping Products Data ---
 dropshipping_products = [
-    {"name": "Smartwatch 4G", "cost": 25, "price": 59.99, "stock": 42},
-    {"name": "Bluetooth Shower Speaker", "cost": 9, "price": 24.99, "stock": 80},
-    {"name": "LED Pet Collar", "cost": 3.5, "price": 12.99, "stock": 120},
-    {"name": "Portable Blender", "cost": 11.5, "price": 32.00, "stock": 50},
+    {"name": "BPC-157 Peptide 5mg Vial", "cost": 18.5, "price": 39.99, "stock": 75},
+    {"name": "4K Mini Drone", "cost": 22.0, "price": 69.99, "stock": 150},
+    {"name": "LED Flame Speaker", "cost": 10.0, "price": 39.95, "stock": 120},
+    {"name": "Pet Hair Remover Roller", "cost": 1.9, "price": 12.99, "stock": 400},
+    {"name": "Rechargeable Hand Warmer", "cost": 6.5, "price": 29.95, "stock": 130},
 ]
 
 # --- API Endpoints ---
-
 @app.get("/api/agents/status")
 async def get_agents_status():
     return {"agents": list(agents_data.values())}

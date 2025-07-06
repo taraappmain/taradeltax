@@ -1,0 +1,120 @@
+[
+  {
+    "name": "4K Mini Drone",
+    "cost": 22.0,
+    "price": 69.99,
+    "stock": 150,
+    "margin": 47.99,
+    "profit_pct": 218.1,
+    "buy_now": "https://tara.shop/checkout/4k-mini-drone"
+  },
+  {
+    "name": "Posture Corrector Brace",
+    "cost": 4.5,
+    "price": 19.99,
+    "stock": 300,
+    "margin": 15.49,
+    "profit_pct": 344.2,
+    "buy_now": "https://tara.shop/checkout/posture-corrector-brace"
+  },
+  {
+    "name": "LED Flame Speaker",
+    "cost": 10.0,
+    "price": 39.95,
+    "stock": 120,
+    "margin": 29.95,
+    "profit_pct": 299.5,
+    "buy_now": "https://tara.shop/checkout/led-flame-speaker"
+  },
+  {
+    "name": "Magnetic Phone Holder",
+    "cost": 2.3,
+    "price": 11.99,
+    "stock": 500,
+    "margin": 9.69,
+    "profit_pct": 421.3,
+    "buy_now": "https://tara.shop/checkout/magnetic-phone-holder"
+  },
+  {
+    "name": "Pet Hair Remover Roller",
+    "cost": 1.9,
+    "price": 12.99,
+    "stock": 400,
+    "margin": 11.09,
+    "profit_pct": 583.7,
+    "buy_now": "https://tara.shop/checkout/pet-hair-remover-roller"
+  },
+  {
+    "name": "Smart LED Strip Lights",
+    "cost": 5.0,
+    "price": 24.99,
+    "stock": 220,
+    "margin": 19.99,
+    "profit_pct": 399.8,
+    "buy_now": "https://tara.shop/checkout/smart-led-strip-lights"
+  },
+  {
+    "name": "Wireless Car Vacuum",
+    "cost": 13.0,
+    "price": 49.99,
+    "stock": 90,
+    "margin": 36.99,
+    "profit_pct": 284.5,
+    "buy_now": "https://tara.shop/checkout/wireless-car-vacuum"
+  },
+  {
+    "name": "Neck Massager Pillow",
+    "cost": 14.0,
+    "price": 39.99,
+    "stock": 70,
+    "margin": 25.99,
+    "profit_pct": 185.6,
+    "buy_now": "https://tara.shop/checkout/neck-massager-pillow"
+  },
+  {
+    "name": "Dog Car Seat Cover",
+    "cost": 7.0,
+    "price": 34.99,
+    "stock": 85,
+    "margin": 27.99,
+    "profit_pct": 399.9,
+    "buy_now": "https://tara.shop/checkout/dog-car-seat-cover"
+  },
+  {
+    "name": "Rechargeable Hand Warmer",
+    "cost": 6.5,
+    "price": 29.95,
+    "stock": 130,
+    "margin": 23.45,
+    "profit_pct": 360.8,
+    "buy_now": "https://tara.shop/checkout/rechargeable-hand-warmer"
+  },
+  {
+    "name": "BPC-157 Peptide (10mg)",
+    "cost": 12.0,
+    "price": 39.99,
+    "stock": 250,
+    "margin": 27.99,
+    "profit_pct": 233.2,
+    "buy_now": "https://tara.shop/checkout/bpc-157-peptide-10mg"
+  },
+  {
+    "name": "BPC-157 Injection Kit (1 Month Supply)",
+    "cost": 25.0,
+    "price": 89.99,
+    "stock": 100,
+    "margin": 64.99,
+    "profit_pct": 260.0,
+    "buy_now": "https://tara.shop/checkout/bpc-157-injection-kit-1-month-supply"
+  },
+  {
+    "name": "Amazon BPC Affiliate Offer",
+    "cost": 0.0,
+    "price": 0.0,
+    "stock": 9999,
+    "referral_link": "https://amzn.to/4lxn9a4",
+    "margin": 0.0,
+    "profit_pct": 0.0,
+    "buy_now": "https://amzn.to/4lxn9a4"
+  }
+]
