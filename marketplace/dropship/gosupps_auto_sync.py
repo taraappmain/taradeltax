@@ -8,94 +8,44 @@ Original file is located at
 """
 
 import os
-import time
-import requests
 from dotenv import load_dotenv
+import requests
 
-# Load environment variables from .env
+# Load environment variables from .env file
 load_dotenv()
 
 SHOPIFY_STORE_URL = os.getenv("SHOPIFY_STORE_URL")
 SHOPIFY_ACCESS_TOKEN = os.getenv("SHOPIFY_ACCESS_TOKEN")
 
-if not SHOPIFY_STORE_URL or not SHOPIFY_ACCESS_TOKEN:
-    print("❌ Missing Shopify credentials in environment variables. Please set them in your .env file.")
-    exit(1)
+def check_shopify_credentials():
+    if not SHOPIFY_STORE_URL or not SHOPIFY_ACCESS_TOKEN:
+        print("❌ Missing Shopify store URL or access token in environment variables.")
+        return
 
-def fetch_go_supps_products():
-    """
-    Dummy scraper: Replace with your real scraping logic for GoSupps products.
-    Returns a list of product dicts with keys: title, image, price
-    """
-    return [
-        {
-            "title": "15 in 1 Dog Multivitamin Treats",
-            "image": "https://www.gosupps.com/media/catalog/product/cache/25/small_image/375x450/81saQ3YPTOL.jpg",
-            "price": "64.99"
-        },
-        {
-            "title": "Monthly Pill Organizer",
-            "image": "https://www.gosupps.com/media/catalog/product/cache/25/small_image/375x450/715VUXyWfcL.jpg",
-            "price": "53.99"
-        }
-    ]
+    print("🔍 Checking Shopify product list...")
 
-def get_existing_shopify_titles():
-    print("📡 Retrieving existing Shopify products...")
     url = f"{SHOPIFY_STORE_URL}/admin/api/2024-01/products.json"
     headers = {
         "X-Shopify-Access-Token": SHOPIFY_ACCESS_TOKEN,
         "Content-Type": "application/json"
     }
-    response = requests.get(url, headers=headers)
+
+    try:
+        response = requests.get(url, headers=headers)
+    except Exception as e:
+        print("❌ Error connecting to Shopify API:", e)
+        return
+
     if response.status_code == 200:
         data = response.json()
-        titles = [p["title"] for p in data.get("products", [])]
-        print(f"✅ Found {len(titles)} existing product(s).")
-        return titles
+        products = data.get("products", [])
+        print(f"✅ Found {len(products)} product(s) in Shopify.")
+        for p in products:
+            print(f"→ {p['title']} | ID: {p['id']}")
     else:
-        print("❌ Failed to retrieve existing products.")
-        print("→", response.text)
-        return []
-
-def upload_to_shopify(product):
-    url = f"{SHOPIFY_STORE_URL}/admin/api/2024-01/products.json"
-    headers = {
-        "X-Shopify-Access-Token": SHOPIFY_ACCESS_TOKEN,
-        "Content-Type": "application/json"
-    }
-
-    payload = {
-        "product": {
-            "title": product["title"],
-            "body_html": f"<strong>{product['title']}</strong>",
-            "images": [{"src": product["image"]}],
-            "variants": [{"price": product["price"]}]
-        }
-    }
-
-    response = requests.post(url, headers=headers, json=payload)
-
-    if response.status_code == 201:
-        print(f"✅ Uploaded: {product['title']}")
-    else:
-        print(f"❌ Failed to upload: {product['title']}")
-        print("→", response.status_code, response.text)
-
-def auto_sync():
-    print("🚀 Starting GoSupps → Shopify auto-sync...\n")
-    go_supps_products = fetch_go_supps_products()
-    existing_titles = get_existing_shopify_titles()
-
-    for product in go_supps_products:
-        if product["title"] not in existing_titles:
-            print(f"🔄 Syncing: {product['title']}")
-            upload_to_shopify(product)
-            time.sleep(2)  # Avoid Shopify rate limits
-        else:
-            print(f"⏭️ Skipping (already exists): {product['title']}")
-
-    print("\n✅ Auto-sync complete.")
+        print("❌ Shopify API call failed.")
+        print(f"→ Status: {response.status_code}")
+        print("→ Response:", response.text)
 
 if __name__ == "__main__":
-    auto_sync()
+    check_shopify_credentials()
