@@ -1,0 +1,17 @@
+import go_supps_connector
+
+print(">>> Running GoSupps scrape test...")
+
+products = go_supps_connector.fetch_go_supps_products()
+
+if not products:
+    print(">>> No products found. Dumping page HTML...\n")
+    with open("gosupps_debug.html", "w", encoding="utf-8") as f:
+        f.write(go_supps_connector.LAST_PAGE_HTML)
+    print("Saved full HTML to gosupps_debug.html — open this file in browser to inspect 
+product class.")
+else:
+    print(f">>> Got {len(products)} products:")
+    for p in products:
+        print(f"- {p['title']} | {p['price']} | {p['image']}")
+
