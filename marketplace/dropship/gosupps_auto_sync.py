@@ -7,20 +7,26 @@ Original file is located at
     https://colab.research.google.com/drive/1MpDbQhYOO3_gqQmkZ5GSsxgh3QkUXQ44
 """
 
-# -*- coding: utf-8 -*-
-import requests
-import time
-from dotenv import load_dotenv
 import os
+import time
+import requests
+from dotenv import load_dotenv
 
-load_dotenv()  # Load environment variables from .env
+# Load environment variables from .env
+load_dotenv()
 
 SHOPIFY_STORE_URL = os.getenv("SHOPIFY_STORE_URL")
 SHOPIFY_ACCESS_TOKEN = os.getenv("SHOPIFY_ACCESS_TOKEN")
 
-# Stub for real GoSupps scraper - replace with your actual scraper logic
+if not SHOPIFY_STORE_URL or not SHOPIFY_ACCESS_TOKEN:
+    print("❌ Missing Shopify credentials in environment variables. Please set them in your .env file.")
+    exit(1)
+
 def fetch_go_supps_products():
-    # This is static sample data for demonstration
+    """
+    Dummy scraper: Replace with your real scraping logic for GoSupps products.
+    Returns a list of product dicts with keys: title, image, price
+    """
     return [
         {
             "title": "15 in 1 Dog Multivitamin Treats",
@@ -49,7 +55,7 @@ def get_existing_shopify_titles():
         return titles
     else:
         print("❌ Failed to retrieve existing products.")
-        print("→", response.status_code, response.text)
+        print("→", response.text)
         return []
 
 def upload_to_shopify(product):
@@ -77,10 +83,6 @@ def upload_to_shopify(product):
         print("→", response.status_code, response.text)
 
 def auto_sync():
-    if not SHOPIFY_STORE_URL or not SHOPIFY_ACCESS_TOKEN:
-        print("❌ Missing Shopify credentials. Please check your .env file.")
-        return
-
     print("🚀 Starting GoSupps → Shopify auto-sync...\n")
     go_supps_products = fetch_go_supps_products()
     existing_titles = get_existing_shopify_titles()
@@ -89,7 +91,7 @@ def auto_sync():
         if product["title"] not in existing_titles:
             print(f"🔄 Syncing: {product['title']}")
             upload_to_shopify(product)
-            time.sleep(2)  # Rate limit buffer
+            time.sleep(2)  # Avoid Shopify rate limits
         else:
             print(f"⏭️ Skipping (already exists): {product['title']}")
 
