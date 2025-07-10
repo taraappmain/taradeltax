@@ -10,11 +10,14 @@ Original file is located at
 import os
 import requests
 from go_supps_connector import fetch_go_supps_products
+from dotenv import load_dotenv
 
-# Make sure the credentials are set correctly
-SHOPIFY_STORE_URL = "https://tarasupp.myshopify.com"
-SHOPIFY_API_KEY = "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"
-SHOPIFY_API_PASSWORD = "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"  # Use same token if using private token
+load_dotenv()
+
+SHOPIFY_STORE_URL = os.getenv("SHOPIFY_STORE_URL")
+SHOPIFY_API_KEY = os.getenv("SHOPIFY_API_KEY")
+SHOPIFY_API_PASSWORD = os.getenv("SHOPIFY_API_PASSWORD")
+AFFILIATE_REDIRECT_BASE = os.getenv("AFFILIATE_REDIRECT_BASE", "https://www.gosupps.com")  # Customize this
 
 products = fetch_go_supps_products()
 
@@ -25,16 +28,18 @@ if not products:
 print(f"✅ Uploading {len(products)} products to Shopify...")
 
 for product in products:
+    product_link = f"{AFFILIATE_REDIRECT_BASE}/search?q={product['title'].replace(' ', '+')}"
+
     payload = {
         "product": {
             "title": product["title"],
-            "body_html": "<strong>Imported from GoSupps</strong>",
+            "body_html": f"<strong>Redirect to product:</strong> <a href='{product_link}' target='_blank'>Buy Now</a><br><img src='{product['image']}' />",
             "vendor": "GoSupps",
             "product_type": "Supplements",
-            "images": [{"src": product["image"]}],
+            "tags": "affiliate, gosupps, imported",
             "variants": [{
                 "price": product["price"].replace("US$", "").strip(),
-                "inventory_quantity": 10
+                "inventory_quantity": 0  # not held in your inventory
             }]
         }
     }

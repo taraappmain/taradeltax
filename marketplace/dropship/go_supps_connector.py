@@ -10,56 +10,63 @@ Original file is located at
 from playwright.sync_api import sync_playwright
 
 def fetch_go_supps_products():
-    url = "https://www.gosupps.com/en/vitamins-supplements.html"
+    base_url = "https://www.gosupps.com/catalogsearch/result/index/?q=+en+vitamins"
+    products = []
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)  # ← Set to False for debugging
-        context = browser.new_context(user_agent=(
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/114.0.0.0 Safari/537.36"
-        ))
-
+        browser = p.chromium.launch(headless=False)  # headless=False to see browser UI
+        context = browser.new_context(
+            user_agent=(
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/114.0.0.0 Safari/537.36"
+            )
+        )
         page = context.new_page()
-        print(">>> Launching browser and visiting GoSupps...")
 
-        page.goto(url, wait_until="networkidle")
+        url = base_url
+        while True:
+            print(f">>> Loading page: {url}")
+            page.goto(url, wait_until="networkidle")
 
-        try:
-            page.wait_for_selector(".product-item-info", timeout=10000)
-        except:
-            print("❌ Timed out waiting for product cards.")
-            page.screenshot(path="gosupps_snapshot.png")
-            with open("gosupps_debug.html", "w", encoding="utf-8") as f:
-                f.write(page.content())
-            browser.close()
-            return []
+            try:
+                page.wait_for_selector(".product-item-info", timeout=10000)
+            except:
+                print("❌ Timeout waiting for product cards.")
+                break
 
-        items = page.query_selector_all(".product-item-info")
-        products = []
+            items = page.query_selector_all(".product-item-info")
 
-        for item in items:
-            title_el = item.query_selector(".product-item-name")
-            image_el = item.query_selector("img")
-            price_el = item.query_selector(".price")
+            for item in items:
+                title_el = item.query_selector(".product-item-name")
+                image_el = item.query_selector("img")
+                price_el = item.query_selector(".price")
 
-            if title_el and image_el and price_el:
-                product = {
-                    "title": title_el.inner_text().strip(),
-                    "image": image_el.get_attribute("src"),
-                    "price": price_el.inner_text().strip(),
-                }
-                products.append(product)
+                if title_el and image_el and price_el:
+                    product = {
+                        "title": title_el.inner_text().strip(),
+                        "image": image_el.get_attribute("src"),
+                        "price": price_el.inner_text().strip(),
+                        # add product_url if you want to track the original link for dropshipping
+                    }
+                    products.append(product)
+
+            # Pagination next link
+            next_link = page.query_selector("li > a.next.i-next")
+            if next_link:
+                url = next_link.get_attribute("href")
+                if not url.startswith("http"):
+                    url = "https://www.gosupps.com" + url
+            else:
+                print("✅ No more pages.")
+                break
 
         browser.close()
-        print(f"✅ Found {len(products)} products.")
-        return products
+
+    print(f"✅ Total products fetched: {len(products)}")
+    return products
 
 if __name__ == "__main__":
-    print(">>> Running GoSupps scrape test...")
     products = fetch_go_supps_products()
-    if products:
-        for p in products:
-            print(p)
-    else:
-        print(">>> No products found.")
+    for p in products:
+        print(p)

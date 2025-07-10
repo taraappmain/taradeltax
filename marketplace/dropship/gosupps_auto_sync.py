@@ -7,45 +7,78 @@ Original file is located at
     https://colab.research.google.com/drive/1MpDbQhYOO3_gqQmkZ5GSsxgh3QkUXQ44
 """
 
+# gosupps_auto_sync.py
 import os
-from dotenv import load_dotenv
 import requests
+from dotenv import load_dotenv
+from urllib.parse import urlparse, parse_qs, urlencode
+from go_supps_connector import fetch_go_supps_products
 
-# Load environment variables from .env file
 load_dotenv()
 
-SHOPIFY_STORE_URL = os.getenv("SHOPIFY_STORE_URL")
-SHOPIFY_ACCESS_TOKEN = os.getenv("SHOPIFY_ACCESS_TOKEN")
+SHOPIFY_STORE_URL = os.getenv("SHOPIFY_STORE_URL").rstrip("/")
+SHOPIFY_API_KEY = os.getenv("SHOPIFY_API_KEY")
+SHOPIFY_API_PASSWORD = os.getenv("SHOPIFY_API_PASSWORD")
+AFFILIATE_TAG = os.getenv("AFFILIATE_TAG", "")
 
-def check_shopify_credentials():
-    if not SHOPIFY_STORE_URL or not SHOPIFY_ACCESS_TOKEN:
-        print("❌ Missing Shopify store URL or access token in environment variables.")
-        return
+def add_affiliate_to_url(url, tag):
+    if not tag:
+        return url
+    parsed = urlparse(url)
+    query = parse_qs(parsed.query)
+    query['ref'] = tag  # Change 'ref' to the correct affiliate param if needed
+    new_query = urlencode(query, doseq=True)
+    new_url = parsed._replace(query=new_query).geturl()
+    return new_url
 
-    print("🔍 Checking Shopify product list...")
-
-    url = f"{SHOPIFY_STORE_URL}/admin/api/2024-01/products.json"
+def create_or_update_shopify_product(product):
+    api_url = f"{SHOPIFY_STORE_URL}/admin/api/2024-01/products.json"
     headers = {
-        "X-Shopify-Access-Token": SHOPIFY_ACCESS_TOKEN,
         "Content-Type": "application/json"
     }
 
-    try:
-        response = requests.get(url, headers=headers)
-    except Exception as e:
-        print("❌ Error connecting to Shopify API:", e)
+    # Add affiliate tag to product URL
+    product_url_with_affiliate = add_affiliate_to_url(product.get("product_url", ""), AFFILIATE_TAG)
+
+    payload = {
+        "product": {
+            "title": product["title"],
+            "body_html": f"<a href='{product_url_with_affiliate}' target='_blank'>Buy on GoSupps</a>",
+            "vendor": "GoSupps",
+            "product_type": "Supplements",
+            "images": [{"src": product["image"]}],
+            "variants": [{
+                "price": product["price"].replace("US$", "").replace("$", "") or "0.00",
+                "inventory_quantity": 0,
+                "inventory_management": None
+            }],
+            "status": "active"
+        }
+    }
+
+    response = requests.post(
+        api_url,
+        auth=(SHOPIFY_API_KEY, SHOPIFY_API_PASSWORD),
+        json=payload,
+        headers=headers
+    )
+
+    if response.status_code == 201:
+        print(f"✅ Created Shopify product: {product['title']}")
+    elif response.status_code == 422:
+        print(f"⚠️ Shopify product might already exist: {product['title']}")
+    else:
+        print(f"❌ Failed to upload product: {product['title']}")
+        print("→", response.status_code, response.text)
+
+def main():
+    products = fetch_go_supps_products()
+    if not products:
+        print("No products fetched, aborting.")
         return
 
-    if response.status_code == 200:
-        data = response.json()
-        products = data.get("products", [])
-        print(f"✅ Found {len(products)} product(s) in Shopify.")
-        for p in products:
-            print(f"→ {p['title']} | ID: {p['id']}")
-    else:
-        print("❌ Shopify API call failed.")
-        print(f"→ Status: {response.status_code}")
-        print("→ Response:", response.text)
+    for product in products:
+        create_or_update_shopify_product(product)
 
 if __name__ == "__main__":
-    check_shopify_credentials()
+    main()
