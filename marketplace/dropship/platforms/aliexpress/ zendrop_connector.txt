@@ -1,0 +1,67 @@
+# zendrop_connector.py
+import os
+import requests
+from dotenv import load_dotenv
+from urllib.parse import urlparse, parse_qs, urlencode
+from fetch_zendrop_products import fetch_zendrop_products
+
+load_dotenv()
+
+SHOPIFY_STORE_URL = os.getenv("SHOPIFY_STORE_URL").rstrip("/")
+SHOPIFY_API_KEY = os.getenv("SHOPIFY_API_KEY")
+SHOPIFY_API_PASSWORD = os.getenv("SHOPIFY_API_PASSWORD")
+AFFILIATE_TAG = os.getenv("AFFILIATE_TAG", "")
+
+def add_affiliate_to_url(url, tag):
+    if not tag:
+        return url
+    parsed = urlparse(url)
+    query = parse_qs(parsed.query)
+    query['ref'] = tag
+    new_query = urlencode(query, doseq=True)
+    return parsed._replace(query=new_query).geturl()
+
+def create_or_update_shopify_product(product):
+    api_url = f"{SHOPIFY_STORE_URL}/admin/api/2024-01/products.json"
+    headers = {
+        "Content-Type": "application/json"
+    }
+
+    product_url_with_affiliate = add_affiliate_to_url(product.get("product_url", ""), AFFILIATE_TAG)
+
+    payload = {
+        "product": {
+            "title": product["title"],
+            "body_html": f"<a href='{product_url_with_affiliate}' target='_blank'>Buy on Zendrop</a>",
+            "vendor": "Zendrop",
+            "product_type": "Dropship",
+            "images": [{"src": product["image"]}],
+            "variants": [{
+                "price": product["price"].replace("US$", "").replace("$", "") or "0.00",
+                "inventory_quantity": 0,
+                "inventory_management": None
+            }],
+            "status": "active"
+        }
+    }
+
+    response = requests.post(api_url, auth=(SHOPIFY_API_KEY, SHOPIFY_API_PASSWORD), json=payload, headers=headers)
+    if response.status_code == 201:
+        print(f"✅ Created Shopify product: {product['title']}")
+    elif response.status_code == 422:
+        print(f"⚠️ Shopify product might already exist: {product['title']}")
+    else:
+        print(f"❌ Failed to upload product: {product['title']}")
+        print("→", response.status_code, response.text)
+
+def main():
+    products = fetch_zendrop_products()
+    if not products:
+        print("No products fetched, aborting.")
+        return
+
+    for product in products:
+        create_or_update_shopify_product(product)
+
+if __name__ == "__main__":
+    main()

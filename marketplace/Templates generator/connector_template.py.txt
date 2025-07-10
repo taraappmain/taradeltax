@@ -1,0 +1,5 @@
+# connector_template.py
+from {{FETCH_MODULE}} import fetch_PRODUCTS
+
+def get_products():
+    return fetch_PRODUCTS()

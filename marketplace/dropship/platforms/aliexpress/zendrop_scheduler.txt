@@ -1,0 +1,20 @@
+#!/bin/bash
+# Scheduler: run Zendrop auto-sync every 6 hours
+
+cd "$(dirname "$0")" || exit 1
+echo "🕒 Starting Zendrop sync job at $(date)"
+
+PYTHON_BIN="/usr/bin/python3.11"
+SCRIPT="zendrop_auto_sync.py"
+
+if [ ! -f "$SCRIPT" ]; then
+  echo "❌ Script $SCRIPT not found!"
+  exit 1
+fi
+
+$PYTHON_BIN "$SCRIPT"
+if [ $? -ne 0 ]; then
+  echo "❌ zendrop_auto_sync.py exited with errors at $(date)"
+else
+  echo "✅ zendrop_auto_sync.py completed successfully at $(date)"
+fi

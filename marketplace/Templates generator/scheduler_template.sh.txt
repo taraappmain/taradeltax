@@ -1,0 +1,4 @@
+#!/bin/bash
+cd "$(dirname "$0")" || exit 1
+echo "🕒 Running sync at $(date)"
+/usr/bin/python3.11 {{SYNC_SCRIPT}}.py

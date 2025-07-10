@@ -1,0 +1,21 @@
+# shopify_connector_template.py
+import requests
+import os
+
+def create_shopify_product(product, api_key, password, store_url):
+    api_url = f"{store_url}/admin/api/2024-01/products.json"
+    payload = {
+        "product": {
+            "title": product["title"],
+            "body_html": product["description"],
+            "images": [{"src": product["image"]}],
+            "variants": [{
+                "price": product["price"],
+                "inventory_quantity": 5,
+                "inventory_management": "shopify"
+            }]
+        }
+    }
+    headers = {"Content-Type": "application/json"}
+    response = requests.post(api_url, auth=(api_key, password), json=payload, headers=headers)
+    return response.json()

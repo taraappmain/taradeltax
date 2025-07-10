@@ -1,0 +1,38 @@
+import importlib
+from connectors import shopify_connector
+
+FETCHER_MODULES = [
+    "fetchers.zendrop",
+    "fetchers.amazon",
+    # Add more platform fetchers here
+]
+
+def run_all_sync():
+    all_products = []
+
+    for module_name in FETCHER_MODULES:
+        try:
+            fetcher = importlib.import_module(module_name)
+            print(f"🔄 Fetching products from {module_name} ...")
+            products = fetcher.fetch_products()
+            if products:
+                all_products.extend(products)
+                print(f"✅ Fetched {len(products)} products from 
+{module_name}")
+            else:
+                print(f"⚠️ No products fetched from {module_name}")
+        except Exception as e:
+            print(f"❌ Error fetching from {module_name}: {e}")
+
+    print(f"🚀 Total products to upload: {len(all_products)}")
+
+    for product in all_products:
+        try:
+            shopify_connector.create_shopify_product(product)
+        except Exception as e:
+            print(f"❌ Failed to upload product '{product.get('title', 
+'Unknown')}': {e}")
+
+if __name__ == "__main__":
+    run_all_sync()
+

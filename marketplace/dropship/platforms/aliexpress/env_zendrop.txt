@@ -1,0 +1,4 @@
+SHOPIFY_STORE_URL=https://yourshop.myshopify.com
+SHOPIFY_API_KEY=your_shopify_api_key_here
+SHOPIFY_API_PASSWORD=your_shopify_api_password_here
+AFFILIATE_TAG=your_affiliate_tag_here

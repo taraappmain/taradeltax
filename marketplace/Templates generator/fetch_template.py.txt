@@ -1,0 +1,23 @@
+# fetch_template.py
+from playwright.sync_api import sync_playwright
+
+def fetch_PRODUCTS():
+    base_url = "{{BASE_URL}}"
+    products = []
+
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        context = browser.new_context()
+        page = context.new_page()
+        page.goto(base_url, wait_until="networkidle")
+
+        items = page.query_selector_all("{{PRODUCT_SELECTOR}}")
+        for item in items:
+            title = item.query_selector("{{TITLE_SELECTOR}}").inner_text()
+            image = item.query_selector("{{IMAGE_SELECTOR}}").get_attribute("src")
+            price = item.query_selector("{{PRICE_SELECTOR}}").inner_text()
+            products.append({"title": title, "image": image, "price": price})
+
+        browser.close()
+
+    return products
